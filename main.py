@@ -14,6 +14,8 @@ class DownloaderApp:
     def __init__(self, root):
         self.root = root
         self.root.title(f"MRScraper v{self.VERSION}")
+        self.root.resizable(False, False)
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
         self.console_url = tk.StringVar()
         self.region = tk.StringVar(value="Europe")
@@ -21,7 +23,11 @@ class DownloaderApp:
         self.status = tk.StringVar(value="Ready")
         self.do_limit = tk.BooleanVar(value=False)
         self.output_dir = tk.StringVar(value="C:/")
+
+        # Flags
+        self.curr_downloading = False
         self.cancel_flag = threading.Event()
+        self.pause_flag = threading.Event()
 
         # Widgets
         self.limit_label = None
@@ -29,6 +35,7 @@ class DownloaderApp:
         self.progress = None
         self.download_button = None
         self.cancel_button = None
+        self.pause_button = None
 
         self.create_widgets()
 
@@ -80,6 +87,10 @@ class DownloaderApp:
         self.cancel_button.grid(row=6, column=1, sticky=tk.W)
         self.cancel_button.config(state=tk.DISABLED)
 
+        self.pause_button = ttk.Button(frame, text="Pause Download", command=self.pause_download)
+        self.pause_button.grid(row=6, column=2, sticky=tk.W)
+        self.pause_button.config(state=tk.DISABLED)
+
         # Status label
         ttk.Label(frame, textvariable=self.status, width=80).grid(row=7, column=0, columnspan=2, pady=10, sticky=tk.W)
 
@@ -106,16 +117,27 @@ class DownloaderApp:
             if not result:
                 return
 
+        self.curr_downloading = True
         self.status.set("Downloading...")
         self.root.update_idletasks()
         self.download_button.config(state=tk.DISABLED)
         self.cancel_button.config(state=tk.NORMAL)
+        self.pause_button.config(state=tk.NORMAL)
         self.cancel_flag.clear()
+        self.pause_flag.set()  # Ensure the pause flag is set to allow running
         download_thread = threading.Thread(target=self.download_files)
         download_thread.start()
 
     def cancel_download(self):
         self.cancel_flag.set()
+
+    def pause_download(self):
+        if self.pause_flag.is_set():
+            self.pause_flag.clear()
+            self.pause_button.config(text="Resume Download")
+        else:
+            self.pause_flag.set()
+            self.pause_button.config(text="Pause Download")
 
     def download_files(self):
         base_url = f"https://myrient.erista.me/files/No-Intro/{quote(self.console_url.get())}"
@@ -150,7 +172,19 @@ class DownloaderApp:
                 self.status.set("Download cancelled!")
                 self.cancel_button.config(state=tk.DISABLED)
                 self.download_button.config(state=tk.NORMAL)
+                self.pause_button.config(state=tk.DISABLED)
                 return
+
+            while not self.pause_flag.is_set():
+                self.status.set("Paused...")
+                self.root.update_idletasks()
+                if self.cancel_flag.is_set():
+                    self.cancel_flag.clear()
+                    self.status.set("Download cancelled!")
+                    self.cancel_button.config(state=tk.DISABLED)
+                    self.download_button.config(state=tk.NORMAL)
+                    self.pause_button.config(state=tk.DISABLED)
+                    return
 
             file_url = link['href']
             if not file_url.startswith("http"):
@@ -176,9 +210,11 @@ class DownloaderApp:
             self.progress["value"] = curr_file
             self.root.update_idletasks()
 
+        self.curr_downloading = False
         self.status.set("Download completed!")
         self.download_button.config(state=tk.NORMAL)
         self.cancel_button.config(state=tk.DISABLED)
+        self.pause_button.config(state=tk.DISABLED)
 
     def is_valid_file(self, file_url):
         file_name = unquote(file_url.split('/')[-1])
@@ -195,6 +231,11 @@ class DownloaderApp:
             return False
         return True
 
+    def on_close(self):
+        if not self.curr_downloading:
+            self.root.destroy()
+        elif messagebox.askokcancel("Confirm quit", "Quitting now will cancel any ongoing downloads. Are you sure?"):
+            self.root.destroy()
 
 if __name__ == "__main__":
     root = tk.Tk()
