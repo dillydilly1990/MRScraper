@@ -169,7 +169,7 @@ class DownloaderApp:
             self.status.set(f"Downloading {file_name}")
             print(f"Downloading {file_name}")
 
-            with open(os.path.join(self.output_dir.get(), file_name), 'wb') as f:
+            with open(os.path.join(full_path, file_name), 'wb') as f:
                 f.write(file_response.content)
 
             curr_file += 1

@@ -38,8 +38,7 @@ MRScraper is a Python application that provides users a quick, easy and efficien
 7. Use the "Cancel Download" button to stop the download process.
 
 ## Requirements
-- Python 3.x
-- `tkinter`
+-  Python 3.x
 - `requests`
 - `beautifulsoup4`
 
