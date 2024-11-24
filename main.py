@@ -9,7 +9,7 @@ import threading
 
 
 class DownloaderApp:
-    VERSION = "1.0"
+    VERSION = "1.1"
 
     def __init__(self, root):
         self.root = root
@@ -18,10 +18,10 @@ class DownloaderApp:
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
         self.console_url = tk.StringVar()
+        self.do_region_limit = tk.BooleanVar(value=True)
         self.region = tk.StringVar(value="Europe")
-        self.limit = tk.IntVar(value=10)
         self.status = tk.StringVar(value="Ready")
-        self.do_limit = tk.BooleanVar(value=False)
+        self.do_smart_limit = tk.BooleanVar(value=True)
         self.output_dir = tk.StringVar(value="C:/")
 
         # Flags
@@ -30,6 +30,8 @@ class DownloaderApp:
         self.pause_flag = threading.Event()
 
         # Widgets
+        self.region_label = None
+        self.region_selector = None
         self.limit_label = None
         self.limit_entry = None
         self.progress = None
@@ -44,63 +46,77 @@ class DownloaderApp:
         frame = ttk.Frame(self.root, padding="10")
         frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
-        # System selection
-        ttk.Label(frame, text="System:", width=20).grid(row=0, column=0, sticky=tk.W)
+        # System selection section
+        system_frame = ttk.LabelFrame(frame, text="Directory", padding="10")
+        system_frame.grid(row=0, column=0, columnspan=3, sticky=(tk.W, tk.E))
 
+        
+
+        ttk.Label(system_frame, text="System:", width=20).grid(row=0, column=0, sticky=tk.W)
         dir_path = os.path.dirname(os.path.realpath(__file__))
         file_path = os.path.join(dir_path, "systemlist.txt")
         with open(file_path, 'r') as f:
             consoles = [line.strip() for line in f.readlines()]
-
-        dropdown = ttk.Combobox(frame, textvariable=self.console_url, values=consoles, width=50)
+        dropdown = ttk.Combobox(system_frame, textvariable=self.console_url, values=consoles, width=50)
         dropdown.grid(row=0, column=1, sticky=tk.W)
 
-        # Region selection
-        ttk.Label(frame, text="Region:", width=40).grid(row=1, column=0, sticky=tk.E)
+        # Region selection section
+        region_frame = ttk.LabelFrame(frame, text="Region Selection", padding="10")
+        region_frame.grid(row=1, column=0, columnspan=3, sticky=(tk.W, tk.E))
+
+        ttk.Checkbutton(region_frame, text="Limit by region", variable=self.do_region_limit,
+                        command=self.toggle_region_option).grid(row=0, column=0, sticky=tk.W)
+        self.region_label = ttk.Label(region_frame, text="Region:", width=40)
+        self.region_label.grid(row=1, column=0, sticky=tk.E)
         regions = ["Europe", "USA", "Japan", "China", "Korea", "Australia", "Asia", "World only"]
-        dropdown = ttk.Combobox(frame, textvariable=self.region, values=regions, width=10)
-        dropdown.grid(row=1, column=1, sticky=tk.W)
+        self.region_selector = ttk.Combobox(region_frame, textvariable=self.region, values=regions, width=10)
+        self.region_selector.grid(row=1, column=1, sticky=tk.W)
 
-        # File amount limits
-        ttk.Checkbutton(frame, text="Limit files", variable=self.do_limit, command=self.toggle_limit_option).grid(row=2, column=0, sticky=tk.W)
+        # File limit section
+        limit_frame = ttk.LabelFrame(frame, text="File Limit", padding="10")
+        limit_frame.grid(row=2, column=0, columnspan=3, sticky=(tk.W, tk.E))
 
-        self.limit_label = ttk.Label(frame, text="Boundary:", width=20)
-        self.limit_label.grid(row=3, column=0, sticky=tk.W)
-        self.limit_entry = ttk.Spinbox(frame, from_=1, to=10000, textvariable=self.limit, width=10)
-        self.limit_entry.grid(row=3, column=1, sticky=tk.W)
-        self.toggle_limit_option()
+        ttk.Checkbutton(limit_frame, text="Smart filters (Recommended)", variable=self.do_smart_limit).grid(
+            row=0, column=0, sticky=tk.W)
 
-        # Output directory
-        ttk.Label(frame, text="Output dir:", width=20).grid(row=4, column=0, sticky=tk.W)
-        ttk.Entry(frame, textvariable=self.output_dir, width=50).grid(row=4, column=1, sticky=tk.W)
-        ttk.Button(frame, text="Browse", command=self.select_output_dir).grid(row=4, column=2, sticky=tk.W)
+        # Output directory section
+        output_frame = ttk.LabelFrame(frame, text="Output Directory", padding="10")
+        output_frame.grid(row=3, column=0, columnspan=3, sticky=(tk.W, tk.E))
 
-        # Progress bar
-        self.progress = ttk.Progressbar(frame, orient="horizontal", length=400, mode="determinate")
-        self.progress.grid(row=5, column=0, columnspan=2, pady=10, sticky=tk.W)
+        ttk.Label(output_frame, text="Output dir:", width=20).grid(row=0, column=0, sticky=tk.W)
+        ttk.Entry(output_frame, textvariable=self.output_dir, width=50).grid(row=0, column=1, sticky=tk.W)
+        ttk.Button(output_frame, text="Browse", command=self.select_output_dir).grid(row=0, column=2, sticky=tk.W)
 
-        # Download buttons
-        self.download_button = ttk.Button(frame, text="Start Download", command=self.start_download)
-        self.download_button.grid(row=6, column=0, sticky=tk.W)
+        # Progress bar section
+        progress_frame = ttk.LabelFrame(frame, text="Progress", padding="10")
+        progress_frame.grid(row=4, column=0, columnspan=3, sticky=(tk.W, tk.E))
 
-        self.cancel_button = ttk.Button(frame, text="Cancel Download", command=self.cancel_download)
-        self.cancel_button.grid(row=6, column=1, sticky=tk.W)
+        self.progress = ttk.Progressbar(progress_frame, orient="horizontal", length=400, mode="determinate")
+        self.progress.grid(row=0, column=0, columnspan=3, pady=10, sticky=tk.W)
+
+        # Download buttons section
+        button_frame = ttk.LabelFrame(frame, text="Controls", padding="10")
+        button_frame.grid(row=5, column=0, columnspan=3, sticky=(tk.W, tk.E))
+
+        self.download_button = ttk.Button(button_frame, text="Start Download", command=self.start_download)
+        self.download_button.grid(row=0, column=0, sticky=tk.W)
+        self.cancel_button = ttk.Button(button_frame, text="Cancel Download", command=self.cancel_download)
+        self.cancel_button.grid(row=0, column=1, sticky=tk.W)
         self.cancel_button.config(state=tk.DISABLED)
-
-        self.pause_button = ttk.Button(frame, text="Pause Download", command=self.pause_download)
-        self.pause_button.grid(row=6, column=2, sticky=tk.W)
+        self.pause_button = ttk.Button(button_frame, text="Pause Download", command=self.pause_download)
+        self.pause_button.grid(row=0, column=2, sticky=tk.W)
         self.pause_button.config(state=tk.DISABLED)
 
         # Status label
-        ttk.Label(frame, textvariable=self.status, width=80).grid(row=7, column=0, columnspan=2, pady=10, sticky=tk.W)
+        ttk.Label(frame, textvariable=self.status, width=80).grid(row=6, column=0, columnspan=3, pady=10, sticky=tk.W)
 
-    def toggle_limit_option(self):
-        if self.do_limit.get():
-            self.limit_label.config(state=tk.NORMAL)
-            self.limit_entry.config(state=tk.NORMAL)
+    def toggle_region_option(self):
+        if self.do_region_limit.get():
+            self.region_label.config(state=tk.NORMAL)
+            self.region_selector.config(state=tk.NORMAL)
         else:
-            self.limit_label.config(state=tk.DISABLED)
-            self.limit_entry.config(state=tk.DISABLED)
+            self.region_label.config(state=tk.DISABLED)
+            self.region_selector.config(state=tk.DISABLED)
 
     def select_output_dir(self):
         self.output_dir.set(tk.filedialog.askdirectory())
@@ -141,7 +157,6 @@ class DownloaderApp:
 
     def download_files(self):
         base_url = f"https://myrient.erista.me/files/No-Intro/{quote(self.console_url.get())}"
-        limit = self.limit.get()
 
         min_free_space = 100 * 1024 * 1024
 
@@ -157,10 +172,7 @@ class DownloaderApp:
 
         links = soup.select("tbody > tr > td.link > a")
 
-        if self.do_limit.get():
-            filtered_links = [link for link in links[1:limit] if self.is_valid_file(link['href'])]
-        else:
-            filtered_links = [link for link in links if self.is_valid_file(link['href'])]
+        filtered_links = [link for link in links[1:] if self.is_valid_file(link['href'])]
 
         amount = len(filtered_links)
         self.progress["maximum"] = amount
@@ -225,9 +237,9 @@ class DownloaderApp:
             "(Aftermarket)", "(Unl)",
             "(Sample)", "(Promo)", "(Demo)", "(Kiosk)",
         ]
-        if regions and not any(region in file_name for region in regions):
+        if self.do_region_limit.get() and not any(region in file_name for region in regions):
             return False
-        if any(keyword in file_name for keyword in excluded_keywords):
+        if self.do_smart_limit.get() and any(keyword in file_name for keyword in excluded_keywords):
             return False
         return True
 
@@ -236,6 +248,7 @@ class DownloaderApp:
             self.root.destroy()
         elif messagebox.askokcancel("Confirm quit", "Quitting now will cancel any ongoing downloads. Are you sure?"):
             self.root.destroy()
+
 
 if __name__ == "__main__":
     root = tk.Tk()
