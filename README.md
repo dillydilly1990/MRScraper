@@ -4,12 +4,18 @@
 MRScraper is a Python application that provides users a quick, easy and efficient way to mass-download ROMs from the media preservation site [myrient.erista.me](https://myrient.erista.me/). The app is designed to help streamline the process of acquiring ROMs with various filters in place to make sure the user is getting only the top-quality material while still being comprehensive.
 
 ## Features
+- Mass downloads from media preservation site [myrient.erista.me](https://myrient.erista.me/)
+- User-friendly GUI
 - Select console system from a predefined list
+- Options for custom downloads
+- Filter ROMs by region
+- Smart filtering to optimal ROMs
+- Enable/Disable various download filters
 - Choose region for the files
-- Limit the number of files to download
 - Specify output directory
 - Progress bar to show download status
 - Cancel download option
+- Pause download option
 
 ## Installation
 1. Clone the repository:
