@@ -20,7 +20,7 @@ MRScraper is a Python application that provides users a quick, easy and efficien
 ## Installation
 1. Clone the repository:
     ```sh
-    git clone https://github.com/gearandpens/MRScraper.git
+    git clone https://github.com/gearsandpens/MRScraper.git
     ```
 2. Navigate to the project directory:
     ```sh
