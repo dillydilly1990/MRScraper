@@ -158,7 +158,7 @@ class DownloaderApp:
         self.output_dir.set(tk.filedialog.askdirectory())
 
     def start_download(self):
-        if self.advanced_mode.get() and not self.console_url.get().startswith('https://myrient.erista.me/files'):
+        if self.advanced_mode.get() and not self.custom_url.get().startswith('https://myrient.erista.me/files'):
             messagebox.showerror("Unsupported link", "The custom link entered is not supported by MRScraper. Ensure that your link is part of Myrient's file directory.")
             return
         elif not self.console_url.get() and not self.advanced_mode.get():
